@@ -1,5 +1,6 @@
-1. Create a basic react/nextjs application (static)
-2. Implement this function
+1. Create a basic react/nextjs application (static) ✅
+2. Use Rainbow kit for wallet connection
+3. Implement this function
 
 ```javascript
     function airdropERC20(
