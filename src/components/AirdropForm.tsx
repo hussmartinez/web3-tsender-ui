@@ -3,7 +3,9 @@
 import { useState } from "react";
 import InputField from "./ui/InputField";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId, useConfig } from "wagmi";
+import { chainsToTSender, erc20Abi } from "@/constants";
+import { readContract } from "@wagmi/core";
 
 export default function AirdropForm() {
   const [tokenAddress, setTokenAddress] = useState("");
@@ -11,20 +13,40 @@ export default function AirdropForm() {
   const [amounts, setAmounts] = useState("");
 
   const { openConnectModal } = useConnectModal();
-  const { address } = useAccount();
+  const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+  const config = useConfig();
 
+  async function getApprovedAmount(
+    tSenderAddress: string | null
+  ): Promise<number> {
+    if (!tSenderAddress) {
+      alert(
+        "No contract address found for this chain, please use a supported chain"
+      );
+      return 0;
+    }
+    // use readContract instead of useReadContract to avoid rerendering
+    const result = await readContract(config, {
+      abi: erc20Abi,
+      address: tokenAddress as `0x${string}`,
+      functionName: "allowance",
+      args: [address, tSenderAddress as `0x${string}`],
+    });
+    return result as number;
+  }
   async function handleSubmit() {
-    if (!address) {
+    if (!isConnected) {
       console.log("Wallet not connected, opening connect modal");
       openConnectModal?.();
     } else {
-      console.log("amounts", amounts);
-      console.log("tokenAddress", tokenAddress);
-      console.log("recipients", recipients);
+      // Approve our tsender contract to send our tokens
+      const tSenderAddress = chainsToTSender[chainId]["tsender"];
+      const approvedAmount = await getApprovedAmount(tSenderAddress);
+      console.log("Approved amount for", tSenderAddress, approvedAmount);
+      // Call the airdrop function on the tsender contract
+      // Wait for the transaction to be mined
     }
-    // Approve our tsender contract to send our tokens
-    // Call the airdrop function on the tsender contract
-    // Wait for the transaction to be mined
   }
   return (
     <div>
