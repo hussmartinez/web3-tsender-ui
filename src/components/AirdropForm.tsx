@@ -2,16 +2,26 @@
 
 import { useState } from "react";
 import InputField from "./ui/InputField";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 
 export default function AirdropForm() {
   const [tokenAddress, setTokenAddress] = useState("");
   const [recipients, setRecipients] = useState("");
   const [amounts, setAmounts] = useState("");
 
+  const { openConnectModal } = useConnectModal();
+  const { address } = useAccount();
+
   async function handleSubmit() {
-    console.log("tokenAddress", tokenAddress);
-    console.log("recipients", recipients);
-    console.log("amounts", amounts);
+    if (!address) {
+      console.log("Wallet not connected, opening connect modal");
+      openConnectModal?.();
+    } else {
+      console.log("amounts", amounts);
+      console.log("tokenAddress", tokenAddress);
+      console.log("recipients", recipients);
+    }
     // Approve our tsender contract to send our tokens
     // Call the airdrop function on the tsender contract
     // Wait for the transaction to be mined
