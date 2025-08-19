@@ -1,5 +1,11 @@
 "use client";
 
+import AirdropForm from "@/components/AirdropForm";
+
 export default function Home() {
-  return <div></div>;
+  return (
+    <div>
+      <AirdropForm />
+    </div>
+  );
 }
