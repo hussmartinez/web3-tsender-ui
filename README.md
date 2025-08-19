@@ -1,5 +1,5 @@
 1. Create a basic react/nextjs application (static) ✅
-2. Use Rainbow kit for wallet connection
+2. Use Rainbow kit for wallet connection ✅
 3. Implement this function
 
 ```javascript

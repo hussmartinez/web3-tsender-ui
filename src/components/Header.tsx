@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 export default function Header({
-  githubUrl = "https://github.com",
+  githubUrl = "https://github.com/hussmartinez/web3-tsender-ui",
 }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
