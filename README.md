@@ -11,7 +11,8 @@
     )
 ```
 
-3. Deploy to fleek
+4. e2e testing
+5. Deploy to fleek
 
 ## tsender-deployed.json
 
