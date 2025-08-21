@@ -14,11 +14,15 @@ import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import { calculateTotal } from "@/utils";
 import { AirdropButton } from "./AirdropButton";
 import { TransactionDetails } from "./TransactionDetails";
+import { usePersistentState } from "@/hooks";
 
 export default function AirdropForm() {
-  const [tokenAddress, setTokenAddress] = useState("");
-  const [recipients, setRecipients] = useState("");
-  const [amounts, setAmounts] = useState("");
+  const [tokenAddress, setTokenAddress] = usePersistentState(
+    "tokenAddress",
+    ""
+  );
+  const [recipients, setRecipients] = usePersistentState("recipients", "");
+  const [amounts, setAmounts] = usePersistentState("amounts", "");
   const [transactionStatus, setTransactionStatus] = useState("");
 
   const { isConnected, address } = useAccount();
