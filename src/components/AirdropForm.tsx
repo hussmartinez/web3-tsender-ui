@@ -2,24 +2,26 @@
 
 import { useMemo, useState } from "react";
 import InputField from "./ui/InputField";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount, useChainId, useConfig, useWriteContract } from "wagmi";
 import { chainsToTSender, erc20Abi, tsenderAbi } from "@/constants";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import { calculateTotal } from "@/utils";
+import { AirdropButton } from "./AirdropButton";
 
 export default function AirdropForm() {
   const [tokenAddress, setTokenAddress] = useState("");
   const [recipients, setRecipients] = useState("");
   const [amounts, setAmounts] = useState("");
+  const [transactionStatus, setTransactionStatus] = useState("");
 
-  const { openConnectModal } = useConnectModal();
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const config = useConfig();
   const { data: hash, isPending, writeContractAsync } = useWriteContract();
 
   const total: number = useMemo(() => calculateTotal(amounts), [amounts]);
+  const isFormValid: boolean =
+    !!tokenAddress && !!recipients && !!amounts && total > 0;
 
   async function getApprovedAmount(
     tSenderAddress: string | null
@@ -39,30 +41,35 @@ export default function AirdropForm() {
     });
     return result as number;
   }
-  async function handleSubmit() {
-    if (!isConnected) {
-      console.log("Wallet not connected, opening connect modal");
-      openConnectModal?.();
-    } else {
+
+  function resetTransactionStatus() {
+    setTimeout(() => setTransactionStatus(""), 3000);
+  }
+
+  async function handleSendTokens() {
+    try {
       const tSenderAddress = chainsToTSender[chainId]["tsender"];
+
+      setTransactionStatus("Checking approval...");
       const approvedAmount = await getApprovedAmount(tSenderAddress); // Check how much is already approved
 
       if (approvedAmount < total) {
         // if the approved amount is not enough
         // request approval of total amount
+        setTransactionStatus("Requesting approval...");
         const approvalHash = await writeContractAsync({
           abi: erc20Abi,
           address: tokenAddress as `0x${string}`,
           functionName: "approve",
           args: [tSenderAddress as `0x${string}`, BigInt(total)],
         });
-        // wait for transaction to be mined (hook vs no hook)
+        setTransactionStatus("Waiting for approval...");
         const approvalReceipt = await waitForTransactionReceipt(config, {
           hash: approvalHash,
         });
         console.log("Approval confirmed", approvalReceipt);
       }
-      // After having the right amount approved, let's airdrop!
+      setTransactionStatus("Sending airdrop...");
       await writeContractAsync({
         abi: tsenderAbi,
         address: tSenderAddress as `0x${string}`,
@@ -80,12 +87,16 @@ export default function AirdropForm() {
           BigInt(total),
         ],
       });
-      // Call the airdrop function on the tsender contract
-      // Wait for the transaction to be mined
+      setTransactionStatus("Transaction sent!");
+      resetTransactionStatus();
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      setTransactionStatus("Transaction failed");
+      resetTransactionStatus();
     }
   }
   return (
-    <div>
+    <div className="space-y-6 max-w-5xl mx-auto p-6">
       <InputField
         label="Token Address"
         placeholder="0x"
@@ -106,7 +117,18 @@ export default function AirdropForm() {
         value={amounts}
         onChange={e => setAmounts(e.target.value)}
       />
-      <button onClick={handleSubmit}>Send tokens</button>
+      <AirdropButton
+        isConnected={isConnected}
+        isFormValid={isFormValid}
+        isPending={isPending}
+        transactionStatus={transactionStatus}
+        onSendTokens={handleSendTokens}
+      />
+      {total > 0 && (
+        <div className="text-sm text-gray-600 text-center">
+          Total to send: <span className="font-semibold">{total} tokens</span>
+        </div>
+      )}
     </div>
   );
 }
