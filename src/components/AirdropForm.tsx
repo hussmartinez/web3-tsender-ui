@@ -2,11 +2,18 @@
 
 import { useMemo, useState } from "react";
 import InputField from "./ui/InputField";
-import { useAccount, useChainId, useConfig, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  useConfig,
+  useReadContracts,
+  useWriteContract,
+} from "wagmi";
 import { chainsToTSender, erc20Abi, tsenderAbi } from "@/constants";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import { calculateTotal } from "@/utils";
 import { AirdropButton } from "./AirdropButton";
+import { TransactionDetails } from "./TransactionDetails";
 
 export default function AirdropForm() {
   const [tokenAddress, setTokenAddress] = useState("");
@@ -18,6 +25,43 @@ export default function AirdropForm() {
   const chainId = useChainId();
   const config = useConfig();
   const { data: hash, isPending, writeContractAsync } = useWriteContract();
+
+  const tokenResult = useReadContracts({
+    query: { enabled: tokenAddress !== "" },
+    allowFailure: false,
+    contracts: [
+      {
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "decimals",
+      },
+      {
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "name",
+      },
+      {
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "symbol",
+      },
+      {
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "totalSupply",
+      },
+    ],
+  });
+
+  const token =
+    tokenResult.status === "success"
+      ? {
+          decimals: tokenResult.data[0] as number,
+          name: tokenResult.data[1] as string,
+          symbol: tokenResult.data[2] as string,
+          totalSupply: tokenResult.data[3] as bigint,
+        }
+      : undefined;
 
   const total: number = useMemo(() => calculateTotal(amounts), [amounts]);
   const isFormValid: boolean =
@@ -117,6 +161,7 @@ export default function AirdropForm() {
         value={amounts}
         onChange={e => setAmounts(e.target.value)}
       />
+      <TransactionDetails token={token} amount={total} />
       <AirdropButton
         isConnected={isConnected}
         isFormValid={isFormValid}
@@ -124,11 +169,6 @@ export default function AirdropForm() {
         transactionStatus={transactionStatus}
         onSendTokens={handleSendTokens}
       />
-      {total > 0 && (
-        <div className="text-sm text-gray-600 text-center">
-          Total to send: <span className="font-semibold">{total} tokens</span>
-        </div>
-      )}
     </div>
   );
 }
